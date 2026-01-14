@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from textwrap import dedent
 
 # ===============================
 # Google Sheets 설정
@@ -37,40 +36,34 @@ def load_all_sheets():
         url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={gid}"
         df = pd.read_csv(url)
 
-        # A, B, C 열만 사용
         df = df.iloc[:, :3]
         df.columns = ["색상개발일련번호", "승인명", "보관시편"]
-
         df["시트명"] = sheet_name
+
         dfs.append(df)
 
     return pd.concat(dfs, ignore_index=True)
 
 # ===============================
-# UI 기본 설정
+# UI
 # ===============================
-st.set_page_config(
-    page_title="색상 개발 검색",
-    layout="centered"
-)
+st.set_page_config(page_title="색상 개발 검색", layout="centered")
 
 st.title("🎨 색상 개발 검색")
 
 query = st.text_input(
-    "색상개발 일련번호 / 승인명 일부만 입력해도 검색됩니다",
+    "색상개발 일련번호 / 승인명 일부 검색",
     placeholder="예: YK-12 / WHITE / 070"
 )
 
-col1, col2 = st.columns([1, 5])
-with col1:
-    if st.button("🔄 새로고침"):
-        st.cache_data.clear()
-        st.experimental_rerun()
+if st.button("🔄 데이터 새로고침"):
+    st.cache_data.clear()
+    st.experimental_rerun()
 
 df = load_all_sheets()
 
 # ===============================
-# 검색 로직 (부분검색 통합)
+# 검색
 # ===============================
 if query:
     result = df[
@@ -78,54 +71,15 @@ if query:
         df["승인명"].astype(str).str.contains(query, case=False, na=False)
     ]
 
-    st.write(f"🔍 검색 결과: {len(result)}건")
+    st.markdown(f"### 🔍 검색 결과: {len(result)}건")
 
     if result.empty:
         st.warning("일치하는 데이터가 없습니다.")
     else:
         for _, row in result.iterrows():
-            card_html = dedent(f"""
-            <div style="
-                border:1px solid #ddd;
-                border-radius:10px;
-                padding:14px 16px;
-                margin-bottom:14px;
-                background-color:#ffffff;
-                box-sizing:border-box;
-                width:100%;
-            ">
-                <div style="
-                    font-size:18px;
-                    font-weight:600;
-                    margin-bottom:8px;
-                    word-break:break-word;
-                ">
-                    {row['승인명']}
-                </div>
-
-                <div style="
-                    font-size:14px;
-                    margin-bottom:4px;
-                    word-break:break-word;
-                ">
-                    <b>색상개발 일련번호:</b> {row['색상개발일련번호']}
-                </div>
-
-                <div style="
-                    font-size:14px;
-                    margin-bottom:4px;
-                    word-break:break-word;
-                ">
-                    <b>보관시편:</b> {row['보관시편']}
-                </div>
-
-                <div style="
-                    font-size:12px;
-                    color:#666;
-                    word-break:break-word;
-                ">
-                    시트명: {row['시트명']}
-                </div>
-            </div>
-            """)
-            st.markdown(card_html, unsafe_allow_html=True)
+            with st.container():
+                st.markdown(f"#### {row['승인명']}")
+                st.markdown(f"- **색상개발 일련번호:** {row['색상개발일련번호']}")
+                st.markdown(f"- **보관시편:** {row['보관시편']}")
+                st.markdown(f"- **시트명:** {row['시트명']}")
+                st.divider()
